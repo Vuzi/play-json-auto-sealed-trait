@@ -5,9 +5,7 @@
 - Customisable JSON type field
 
 ## Description
-Auto generation of writer/reader/format for sealed trait, using play-json. The key difference 
-is that here the readers/writers of every class or object implementing the sealed trait is automatically generated
-using the `play-json` existing macros. This allow for quick `format` generation where the default format would have been used.
+Auto generation of writer/reader/format for sealed trait, using `play-json`. The key difference with `play-json` sealed trait macro is that here the readers/writers of every class or object implementing the sealed trait is automatically generated using the `play-json` existing macros. This allow for quick `format` generation where the default format would have been used.
 
 ## Example/Usage
 ```scala
