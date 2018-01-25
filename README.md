@@ -67,4 +67,4 @@ object MacroTest extends App {
 
 ```
 
-Heavily inspired by (`play-json`)[https://github.com/playframework/play-json]
+Heavily inspired by [`play-json`](https://github.com/playframework/play-json) own macros!
