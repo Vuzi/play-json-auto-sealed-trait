@@ -28,6 +28,8 @@ object Test {
 
   case object TestF extends Test
 
+  case class TestG() extends Test
+
   object InnerTest {
     case object TestInner extends Test
   }
@@ -42,6 +44,7 @@ class JsonSealedTraitTest extends WordSpec with ScalaFutures with MustMatchers {
   val testD  = Test.TestD("hey")
   val testE  = Test.TestE
   val testF  = Test.TestF
+  val testG  = Test.TestG()
   val testI  = Test.InnerTest.TestInner
   val test2A = Test2A(42)
   val test3A = Test3A("42")
@@ -62,6 +65,7 @@ class JsonSealedTraitTest extends WordSpec with ScalaFutures with MustMatchers {
         Json.toJson(testD)
         Json.toJson(testE)
         Json.toJson(testF)
+        Json.toJson(testG)
         Json.toJson(testI)
         Json.toJson(test2A)
         Json.toJson(test3A)
@@ -80,6 +84,7 @@ class JsonSealedTraitTest extends WordSpec with ScalaFutures with MustMatchers {
         Json.toJson(testD)
         Json.toJson(testE)
         Json.toJson(testF)
+        Json.toJson(testG)
         Json.toJson(testI)
         Json.toJson(test2A)
         Json.toJson(test3A)
@@ -101,6 +106,7 @@ class JsonSealedTraitTest extends WordSpec with ScalaFutures with MustMatchers {
         Json.fromJson[Test](Json.toJson(testD)) mustBe JsSuccess(testD)
         Json.fromJson[Test](Json.toJson(testE)) mustBe JsSuccess(testE)
         Json.fromJson[Test](Json.toJson(testF)) mustBe JsSuccess(testF)
+        Json.fromJson[Test](Json.toJson(testG)) mustBe JsSuccess(testG)
         Json.fromJson[Test](Json.toJson(testI)) mustBe JsSuccess(testI)
         Json.fromJson[Test](Json.toJson(test2A)) mustBe JsSuccess(test2A)
         Json.fromJson[Test](Json.toJson(test3A)) mustBe JsSuccess(test3A)
@@ -118,6 +124,7 @@ class JsonSealedTraitTest extends WordSpec with ScalaFutures with MustMatchers {
         Json.fromJson[Test](Json.toJson(testD)) mustBe JsSuccess(testD)
         Json.fromJson[Test](Json.toJson(testE)) mustBe JsSuccess(testE)
         Json.fromJson[Test](Json.toJson(testF)) mustBe JsSuccess(testF)
+        Json.fromJson[Test](Json.toJson(testG)) mustBe JsSuccess(testG)
         Json.fromJson[Test](Json.toJson(testI)) mustBe JsSuccess(testI)
         Json.fromJson[Test](Json.toJson(test2A)) mustBe JsSuccess(test2A)
         Json.fromJson[Test](Json.toJson(test3A)) mustBe JsSuccess(test3A)
@@ -138,6 +145,7 @@ class JsonSealedTraitTest extends WordSpec with ScalaFutures with MustMatchers {
         Json.fromJson[Test](Json.toJson(testD)) mustBe JsSuccess(testD)
         Json.fromJson[Test](Json.toJson(testE)) mustBe JsSuccess(testE)
         Json.fromJson[Test](Json.toJson(testF)) mustBe JsSuccess(testF)
+        Json.fromJson[Test](Json.toJson(testG)) mustBe JsSuccess(testG)
         Json.fromJson[Test](Json.toJson(testI)) mustBe JsSuccess(testI)
         Json.fromJson[Test](Json.toJson(test2A)) mustBe JsSuccess(test2A)
         Json.fromJson[Test](Json.toJson(test3A)) mustBe JsSuccess(test3A)
@@ -154,6 +162,7 @@ class JsonSealedTraitTest extends WordSpec with ScalaFutures with MustMatchers {
         Json.fromJson[Test](Json.toJson(testD)) mustBe JsSuccess(testD)
         Json.fromJson[Test](Json.toJson(testE)) mustBe JsSuccess(testE)
         Json.fromJson[Test](Json.toJson(testF)) mustBe JsSuccess(testF)
+        Json.fromJson[Test](Json.toJson(testG)) mustBe JsSuccess(testG)
         Json.fromJson[Test](Json.toJson(testI)) mustBe JsSuccess(testI)
         Json.fromJson[Test](Json.toJson(test2A)) mustBe JsSuccess(test2A)
         Json.fromJson[Test](Json.toJson(test3A)) mustBe JsSuccess(test3A)

@@ -2,7 +2,7 @@ package example
 
 import macros.json.JsonSealedTrait.format
 import example.Test.InnerTest.TestInner
-import example.Test.{TestD, TestE, TestF}
+import example.Test.{TestD, TestE, TestF, TestG}
 import play.api.libs.json._
 
 sealed trait Test
@@ -32,6 +32,8 @@ object Test {
     case object TestInner extends Test
   }
 
+  case class TestG() extends Test
+
   implicit val writer: Format[Test] = format[Test]
 }
 
@@ -43,6 +45,7 @@ object MacroTest extends App {
   val testD = TestD("hey")
   val testE = TestE
   val testF = TestF
+  val testG = TestG()
   val testI = TestInner
   val test2A = Test2A(42)
   val test3A = Test3A("42")
@@ -53,6 +56,7 @@ object MacroTest extends App {
   assert(Json.fromJson[Test](Json.toJson(testD)) == JsSuccess(testD))
   assert(Json.fromJson[Test](Json.toJson(testE)) == JsSuccess(testE))
   assert(Json.fromJson[Test](Json.toJson(testF)) == JsSuccess(testF))
+  assert(Json.fromJson[Test](Json.toJson(testG)) == JsSuccess(testG))
   assert(Json.fromJson[Test](Json.toJson(testI)) == JsSuccess(testI))
   assert(Json.fromJson[Test](Json.toJson(test2A)) == JsSuccess(test2A))
   assert(Json.fromJson[Test](Json.toJson(test3A)) == JsSuccess(test3A))

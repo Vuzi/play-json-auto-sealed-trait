@@ -9,8 +9,8 @@ import play.api.libs.json._
 /**
   * Macro used to generate automatic readers and/or writers for a given sealed trait `T`. Every found implementation of
   * the sealed trait (direct or indirect) will use play-json automatic reader/writer generation (i.e. `Json.reads`
-  * and/or `Json.writes`). The macros will handle case classes, objects, case objects, classes implementing a sealed
-  * trait implementing `T` and every level of nested objects.
+  * and/or `Json.writes`). The macros will handle case classes (empty or not), objects, case objects, classes
+  * implementing a sealed trait implementing `T` and every level of nested elements.
   *
   * For example with a given sealed trait `Test`:
   * {{{
@@ -24,11 +24,12 @@ import play.api.libs.json._
   *  case class Test2A(a: Int) extends Test2
   *  sealed trait Test3 extends Test2
   *  case class Test3A(a: String) extends Test3
+  *  case class TestD() extends Test
   *
   *  object Test {
-  *    case class TestD(value: String) extends Test
-  *    object TestE extends Test
-  *    case object TestF extends Test
+  *    case class TestE(value: String) extends Test
+  *    object TestF extends Test
+  *    case object TestG extends Test
   *
   *    object InnerTest {
   *      case object TestInner extends Test
@@ -43,9 +44,10 @@ import play.api.libs.json._
   *    val testA = TestA(42)
   *    val testB = TestB("hello")
   *    val testC = TestC
-  *    val testD = TestD("hey")
-  *    val testE = TestE
+  *    val testD = TestD()
+  *    val testE = TestE("hey")
   *    val testF = TestF
+  *    val testG = TestG
   *    val testI = TestInner
   *    val test2A = Test2A(42)
   *    val test3A = Test3A("42")
@@ -56,6 +58,7 @@ import play.api.libs.json._
   *    assert(Json.fromJson[Test](Json.toJson(testD)) == JsSuccess(testD))
   *    assert(Json.fromJson[Test](Json.toJson(testE)) == JsSuccess(testE))
   *    assert(Json.fromJson[Test](Json.toJson(testF)) == JsSuccess(testF))
+  *    assert(Json.fromJson[Test](Json.toJson(testG)) == JsSuccess(testG))
   *    assert(Json.fromJson[Test](Json.toJson(testI)) == JsSuccess(testI))
   *    assert(Json.fromJson[Test](Json.toJson(test2A)) == JsSuccess(test2A))
   *    assert(Json.fromJson[Test](Json.toJson(test3A)) == JsSuccess(test3A))
@@ -210,24 +213,38 @@ object JsonSealedTrait {
         q"dis",
         subTypes.toList.map { t =>
           if (isCaseClass(c)(t)) {
-            // We match on the name of the class, which should be present in the parsed element
-            // under the `typeField` field
-            cq"""
-            ${t.name.decodedName.toString} =>
-              val reader = $json.Json.reads[$t]
-              reader.reads(obj)
-            """
+            if(isEmptyCaseClass(c)(t)) {
+              // If the class is empty, we use manually the empty apply of the companion object
+              cq"""
+              ${t.name.decodedName.toString} =>
+                $json.JsSuccess(${t.companion}())
+              """
+            } else {
+              // By default, the generated reader is used
+              cq"""
+              ${t.name.decodedName.toString} =>
+                val reader = $json.Json.reads[$t]
+                reader.reads(obj)
+              """
+            }
           } else {
-            // We match on the name of the object, which should be present in the parsed element
-            // under the `typeField` field. Since we are looking for a companion object, we don't need a reader
+            // Since we are looking for a companion object, we don't need a reader
             cq"""
             ${t.name.decodedName.toString} =>
               $json.JsSuccess(${t.asClass.module})
             """
           }
-        } :+ cq"""_ => $json.JsError("error.invalid")"""
+        } :+ cq""" _ =>
+                val types = ${subTypes.map(_.name.decodedName.toString).mkString(", ")}
+                $json.JsError(
+                  $JsPath \ "__type",
+                  $json.JsonValidationError("error.type.unknow", dis, types)
+                )
+             """
       )
 
+      // We match on the name of the object/class, which should be present in the parsed element
+      // under the `type` field
       q"""(_: $json.JsValue) match {
         case obj @ $json.JsObject(_) => obj.value.get($typeField) match {
            case Some(t) => t.validate[String].flatMap { dis => $cases }
@@ -275,16 +292,28 @@ object JsonSealedTrait {
       val cases = Match(
         q"o",
         subTypes.toList.map { t =>
+          // For each sub-type we create a case clause in a match clause
           if (isCaseClass(c)(t)) {
-            // For each sub-type we create a case clause in a match clause. This clause will also
-            // define a derived writer using the play json `Json.writes` macro
-            cq"""x: $t =>
-              val writer = $json.Json.writes[$t]
-              writer.writes(x) + ($typeField -> $json.JsString(${t.name.decodedName.toString}))"""
+            if(isEmptyCaseClass(c)(t)) {
+              // If the element is an empty case class, we only serialize its type
+              cq"""
+              _: $t =>
+                $json.JsObject(Seq($typeField -> $json.JsString(${t.name.decodedName.toString})))
+              """
+            } else {
+              // We define a derived writer using the play json `Json.writes` macro
+              cq"""
+              x: $t =>
+                val writer = $json.Json.writes[$t]
+                writer.writes(x) + ($typeField -> $json.JsString(${t.name.decodedName.toString}))
+              """
+            }
           } else {
             // If the element is a static object, we only serialize its type
-            cq"""_: $t =>
-              $json.JsObject(Seq($typeField -> $json.JsString(${t.name.decodedName.toString})))"""
+            cq"""
+            _: $t =>
+              $json.JsObject(Seq($typeField -> $json.JsString(${t.name.decodedName.toString})))
+            """
           }
         } :+ cq"""_ => throw new Exception("Could not write abstract type") """
       )
@@ -313,9 +342,19 @@ object JsonSealedTrait {
     }
   }
 
-  /** Will check that the provided class is a case class, or fail the macro */
+  /** Will check that the provided symbol is a case class */
+  @inline
   private def isCaseClass(c: blackbox.Context)(symbol: c.Symbol): Boolean = {
     symbol.isClass && symbol.asClass.isCaseClass && symbol.asClass.module == c.universe.NoSymbol
+  }
+
+  /** Will check that the provided symbol is an empty case class */
+  @inline
+  private def isEmptyCaseClass(c: blackbox.Context)(symbol: c.Symbol): Boolean = {
+    isCaseClass(c)(symbol) &&
+      symbol.typeSignature.decls.collectFirst {
+        case m if m.isMethod && m.asMethod.isPrimaryConstructor => m.asMethod
+      }.exists(_.paramLists.head.isEmpty)
   }
 
   /** Get all the known sub types of a provided type (indirect or direct) */
